@@ -6,7 +6,7 @@ description: >
   validation middleware, error responses, 422 validation errors, RFC 7807, field-level validation,
   business rules validation, cross-field validation, async validation, policy filtering constraints.
   Handles DTOs, query parameters, and domain business rule validation.
-tools: ['edit', 'search', 'read', 'execute', 'todo']
+tools: [read, write, edit/editFiles, search, todo, execute]
 argument-hint: "A validation task, e.g. 'add FluentValidation for PolicyFilterQuery', 'design RFC 7807 error responses for validation', 'validate bulk flag request'"
 ---
 

@@ -5,7 +5,7 @@ description: >
   Jasmine/Jest tests (components, services, pipes, guards). Enforces 90% coverage, AAA pattern,
   FluentAssertions, Moq, test naming conventions, and no production-code changes.
 name: "Testing Agent"
-tools: [read, edit, search, todo]
+tools: [read, write, edit/editFiles, search, todo, execute]
 argument-hint: "Describe what to test, e.g. 'write unit tests for PolicyService.GetByIdAsync' or 'add missing tests for policy-list component'"
 ---
 

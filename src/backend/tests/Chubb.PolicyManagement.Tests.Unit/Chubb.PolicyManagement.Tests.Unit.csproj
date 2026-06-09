@@ -7,7 +7,30 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <!-- Coverlet: generate OpenCover XML to a fixed output location -->
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>opencover</CoverletOutputFormat>
+    <CoverletOutput>$(MSBuildThisFileDirectory)..\..\..\..\coverage-logs\coverage.opencover.xml</CoverletOutput>
+    <Threshold>90</Threshold>
+    <ThresholdType>line,branch,method</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
+    <!-- Exclude generated files from coverage -->
+    <ExcludeByFile>**/Migrations/*.cs,**/*.Designer.cs,**/Program.cs,**/WeatherForecast.cs,**/WeatherForecastController.cs</ExcludeByFile>
   </PropertyGroup>
+
+  <!-- Hook: log coverage after every test run -->
+  <Target Name="LogCoverageAfterTest" AfterTargets="VSTest">
+    <PropertyGroup>
+      <_WorkspaceRoot>$(MSBuildThisFileDirectory)..\..\..\..\ </_WorkspaceRoot>
+      <_LogScript>$(_WorkspaceRoot)scripts\log-coverage.ps1</_LogScript>
+      <_CoverageDir>$(_WorkspaceRoot)coverage-logs</_CoverageDir>
+    </PropertyGroup>
+    <Exec
+      Command="pwsh -NoProfile -NonInteractive -File &quot;$(_LogScript)&quot; -CoverageDir &quot;$(_CoverageDir)&quot;"
+      ContinueOnError="true"
+      ConsoleToMSBuild="false" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
@@ -23,6 +46,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Chubb.PolicyManagement.Api\Chubb.PolicyManagement.Api.csproj" />
     <ProjectReference Include="..\..\Chubb.PolicyManagement.Application\Chubb.PolicyManagement.Application.csproj" />
     <ProjectReference Include="..\..\Chubb.PolicyManagement.Domain\Chubb.PolicyManagement.Domain.csproj" />
   </ItemGroup>

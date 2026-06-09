@@ -1,0 +1,129 @@
+name: CI/CD - Build & Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        dotnet-version: [ '8.0.x' ]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET ${{ matrix.dotnet-version }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+    
+    - name: Restore NuGet packages
+      run: dotnet restore src/Chubb.PolicyManagement.sln
+    
+    - name: Build solution
+      run: dotnet build src/Chubb.PolicyManagement.sln --configuration Release --no-restore
+    
+    - name: Run backend unit tests with coverage
+      run: dotnet test src/backend --configuration Release --logger "console;verbosity=normal" --collect:"XPlat Code Coverage;Format=opencover" --results-directory ./coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/*/coverage.opencover.xml
+        flags: unittests
+        name: codecov-backend
+        fail_ci_if_error: true
+        verbose: true
+    
+    - name: Check code coverage threshold
+      run: |
+        $coverageFile = Get-ChildItem -Path "./coverage" -Filter "coverage.opencover.xml" -Recurse | Select-Object -First 1
+        if ($coverageFile -eq $null) {
+          Write-Host "No coverage file found"
+          exit 1
+        }
+        [xml]$coverage = Get-Content $coverageFile.FullName
+        $lineCoverage = $coverage.'coverage'.'project'.'metrics'.'line-rate'
+        $branchCoverage = $coverage.'coverage'.'project'.'metrics'.'branch-rate'
+        Write-Host "Line Coverage: $($lineCoverage * 100)%"
+        Write-Host "Branch Coverage: $($branchCoverage * 100)%"
+        if ([double]$lineCoverage -lt 0.90) {
+          Write-Host "❌ Code coverage below 90% threshold (Line Coverage: $($lineCoverage * 100)%)"
+          exit 1
+        }
+        if ([double]$branchCoverage -lt 0.90) {
+          Write-Host "❌ Code coverage below 90% threshold (Branch Coverage: $($branchCoverage * 100)%)"
+          exit 1
+        }
+        Write-Host "✅ Code coverage meets 90% threshold"
+    
+    - name: Build Frontend
+      run: npm run build
+      working-directory: ./src/frontend/policy-dashboard
+    
+    - name: Run frontend tests with coverage
+      run: npm run test -- --watch=false --code-coverage
+      working-directory: ./src/frontend/policy-dashboard
+      continue-on-error: true
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          src/backend/**/bin/Release/
+          src/frontend/policy-dashboard/dist/
+        retention-days: 5
+    
+    - name: Archive coverage reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-reports
+        path: |
+          coverage/
+          src/frontend/policy-dashboard/coverage/
+        retention-days: 10
+
+  code-quality:
+    runs-on: windows-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Run code analysis
+      run: |
+        dotnet restore src/Chubb.PolicyManagement.sln
+        dotnet build src/Chubb.PolicyManagement.sln --configuration Release --no-restore /p:TreatWarningsAsErrors=true
+      continue-on-error: true
+    
+    - name: Report code quality
+      run: |
+        Write-Host "✅ Build and test pipeline completed successfully"
+
+  notify:
+    runs-on: windows-latest
+    needs: [ build-and-test, code-quality ]
+    if: always()
+    
+    steps:
+    - name: Determine job status
+      run: |
+        if ("${{ needs.build-and-test.result }}" -eq "failure" -or "${{ needs.code-quality.result }}" -eq "failure") {
+          Write-Host "❌ Pipeline failed"
+          exit 1
+        }
+        Write-Host "✅ Pipeline passed"

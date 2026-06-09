@@ -1,0 +1,52 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend API",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "Build Backend Only",
+      "program": "${workspaceFolder}/src/backend/Chubb.PolicyManagement.Api/bin/Debug/net8.0/Chubb.PolicyManagement.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/backend/Chubb.PolicyManagement.Api",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    {
+      "name": "Backend Tests",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "Build Backend Only",
+      "program": "${workspaceFolder}/.vscode/debug-runner.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/backend",
+      "stopAtEntry": false,
+      "console": "integratedTerminal",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
+      "name": "Attach to Backend",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack",
+      "configurations": [
+        "Backend API"
+      ]
+    }
+  ]
+}

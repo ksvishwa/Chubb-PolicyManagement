@@ -1,6 +1,163 @@
-@Chubb.PolicyManagement.Api_HostAddress = http://localhost:5093
+@baseUrl = http://localhost:5093
+@knownPolicyId = EBD35708-D2E5-46E6-B4E6-0520664AF201
+@unknownPolicyId = 00000000-0000-0000-0000-000000000000
 
-GET {{Chubb.PolicyManagement.Api_HostAddress}}/weatherforecast/
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — default (page 1, size 20)
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — filter by Status = Active
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies?status=Active&page=1&size=10
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — filter by Line of Business
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies?lineOfBusiness=Casualty&page=1&size=10
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — filter by Region
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies?region=Singapore&page=1&size=10
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — date range filter
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies?effectiveDateFrom=2024-01-01&effectiveDateTo=2024-12-31
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — free-text search
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies?search=POL-000066
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — combined filters + sort
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies?status=Active&lineOfBusiness=Casualty&sort=premiumAmount,desc&page=1&size=5
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies — page 2
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies?page=2&size=10
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies/{id} — known policy (Active, Casualty)
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies/{{knownPolicyId}}
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies/{id} — unknown ID → 404 RFC 7807
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies/{{unknownPolicyId}}
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# PATCH /api/v1/policies/flag — bulk flag (valid IDs)
+# ─────────────────────────────────────────────
+PATCH {{baseUrl}}/api/v1/policies/flag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "policyIds": [
+    "EBD35708-D2E5-46E6-B4E6-0520664AF201",
+    "F8CC5D7F-9AA0-499A-AAD1-049EE1008EBD"
+  ],
+  "flagged": true
+}
+
+###
+
+# ─────────────────────────────────────────────
+# PATCH /api/v1/policies/flag — unflag (set flagged = false)
+# ─────────────────────────────────────────────
+PATCH {{baseUrl}}/api/v1/policies/flag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "policyIds": [
+    "EBD35708-D2E5-46E6-B4E6-0520664AF201"
+  ],
+  "flagged": false
+}
+
+###
+
+# ─────────────────────────────────────────────
+# PATCH /api/v1/policies/flag — empty array → 422 validation error
+# ─────────────────────────────────────────────
+PATCH {{baseUrl}}/api/v1/policies/flag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "policyIds": [],
+  "flagged": true
+}
+
+###
+
+# ─────────────────────────────────────────────
+# PATCH /api/v1/policies/flag — invalid GUID → 422 validation error
+# ─────────────────────────────────────────────
+PATCH {{baseUrl}}/api/v1/policies/flag
+Content-Type: application/json
+Accept: application/json
+
+{
+  "policyIds": [
+    "not-a-valid-guid"
+  ],
+  "flagged": true
+}
+
+###
+
+# ─────────────────────────────────────────────
+# GET /api/v1/policies/summary — aggregated statistics
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/api/v1/policies/summary
+Accept: application/json
+
+###
+
+# ─────────────────────────────────────────────
+# GET /health — health check (DB connectivity)
+# ─────────────────────────────────────────────
+GET {{baseUrl}}/health
 Accept: application/json
 
 ###

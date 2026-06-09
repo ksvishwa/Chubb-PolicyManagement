@@ -1,0 +1,247 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Solution",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "src/Chubb.PolicyManagement.sln",
+        "--configuration",
+        "Debug"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true
+      }
+    },
+    {
+      "label": "Build Backend Only",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "src/backend",
+        "--configuration",
+        "Debug"
+      ],
+      "group": "build",
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Build Frontend",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "cwd": "${workspaceFolder}/src/frontend/policy-dashboard",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Log Coverage",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-NonInteractive",
+        "-File",
+        "${workspaceFolder}/scripts/log-coverage.ps1",
+        "-CoverageDir",
+        "${workspaceFolder}/coverage-logs"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Unit Tests",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "src/Chubb.PolicyManagement.sln",
+        "--configuration",
+        "Debug",
+        "--logger",
+        "console;verbosity=normal",
+        "--collect:XPlat Code Coverage",
+        "--results-directory",
+        "${workspaceFolder}/coverage-logs"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Run Backend Unit Tests",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "src/backend",
+        "--configuration",
+        "Debug",
+        "--logger",
+        "console;verbosity=normal",
+        "--collect:XPlat Code Coverage",
+        "--results-directory",
+        "${workspaceFolder}/coverage-logs"
+      ],
+      "group": "test",
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "dependsOn": []
+    },
+    {
+      "label": "Run Frontend Tests",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "test",
+        "--",
+        "--watch=false",
+        "--code-coverage"
+      ],
+      "cwd": "${workspaceFolder}/src/frontend/policy-dashboard",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Run Tests with Coverage Report",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "src/Chubb.PolicyManagement.sln",
+        "--configuration",
+        "Debug",
+        "--logger",
+        "console;verbosity=minimal",
+        "--collect:\"XPlat Code Coverage;Format=OpenCover;CoverageFileName=coverage.xml\"",
+        "--results-directory",
+        "${workspaceFolder}/coverage"
+      ],
+      "group": "test",
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "Clean Build Artifacts",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "clean",
+        "src/Chubb.PolicyManagement.sln"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Restore NuGet Packages",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "restore",
+        "src/Chubb.PolicyManagement.sln"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Build & Test (Complete Pipeline)",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-Command",
+        "dotnet build src/Chubb.PolicyManagement.sln --configuration Debug; if ($LASTEXITCODE -eq 0) { dotnet test src/Chubb.PolicyManagement.sln --configuration Debug --collect:'XPlat Code Coverage' --results-directory coverage-logs; if ($LASTEXITCODE -eq 0) { pwsh -NoProfile -NonInteractive -File scripts/log-coverage.ps1 -CoverageDir coverage-logs } } else { exit $LASTEXITCODE }"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Watch Build Backend",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "watch",
+        "--project",
+        "src/backend/Chubb.PolicyManagement.Api/Chubb.PolicyManagement.Api.csproj",
+        "build"
+      ],
+      "isBackground": true,
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "pattern": "$msCompile",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Watching for changes.*",
+          "endsPattern": "^.*[Ww]aiting for.*|.*[Cc]ompleted.*"
+        }
+      }
+    }
+  ]
+}

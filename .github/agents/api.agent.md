@@ -7,7 +7,7 @@ description: >
   model validation, CORS, middleware, Swagger UI, contract-first, query parameters, PoliciesController.
   Implements and validates the full API surface: ASP.NET Core controllers, DTOs, model validation,
   OpenAPI spec alignment, RFC 7807 error responses, and global exception middleware.
-tools: [read, edit, search, execute, todo]
+tools: [read, write, edit/editFiles, search, todo, execute]
 argument-hint: "Describe the API task, e.g. 'implement a paginated list endpoint', 'add RFC 7807 error handling', 'align controller with OpenAPI spec'"
 ---
 

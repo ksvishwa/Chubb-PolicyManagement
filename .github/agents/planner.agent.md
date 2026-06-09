@@ -6,7 +6,21 @@ description: >
   decide which specialist agent to invoke next, and stay aligned with the assessment deliverables.
   Covers Tier 1 (backend) and Tier 2 (frontend) requirements end-to-end.
 argument-hint: "Describe your current state or what you want to plan next, e.g. 'what should I work on next?', 'plan frontend tests', 'what is still missing for submission?'"
-tools: [read, search, todo]
+tools: [read, write, edit/editFiles, search, todo, execute, agent]
+agents: ["Architect Agent", "agent_db", "API Agent", "Testing Agent", "Validation Agent", "Security Agent"]
+handoffs:
+  - label: "Design architecture"
+    agent: "Architect Agent"
+    prompt: "Review the requirements and produce an architecture decision for the area described."
+  - label: "Implement database layer"
+    agent: "agent_db"
+    prompt: "Implement the EF Core entity, configuration, migration, and seed data as planned."
+  - label: "Implement API layer"
+    agent: "API Agent"
+    prompt: "Implement the ASP.NET Core controller, DTOs, and OpenAPI alignment as planned."
+  - label: "Write unit tests"
+    agent: "Testing Agent"
+    prompt: "Write xUnit and Angular unit tests achieving 90% coverage for the code just implemented."
 ---
 
 # Master Plan Agent — Chubb APAC Policy Management Platform

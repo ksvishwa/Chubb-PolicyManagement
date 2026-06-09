@@ -10,3 +10,7 @@
 !**/appsettings.Development.json
 
 **/TestResults/
+
+# Coverage logs — keep history md files, exclude raw XML
+coverage-logs/*.xml
+coverage-logs/**/*.xml

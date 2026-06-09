@@ -42,7 +42,7 @@ public sealed class PolicyFilterQueryValidator : AbstractValidator<PolicyFilterQ
                 
                 if (parts.Length is < 1 or > 2)
                 {
-                    context.AddFailure(new()
+                    context.AddFailure(new FluentValidation.Results.ValidationFailure()
                     {
                         PropertyName = nameof(PolicyFilterQuery.Sort),
                         ErrorMessage = "Sort must be in format 'field' or 'field,direction'",
@@ -54,7 +54,7 @@ public sealed class PolicyFilterQueryValidator : AbstractValidator<PolicyFilterQ
                 var field = parts[0].Trim();
                 if (!AllowedSortFields.Contains(field, StringComparer.OrdinalIgnoreCase))
                 {
-                    context.AddFailure(new()
+                    context.AddFailure(new FluentValidation.Results.ValidationFailure()
                     {
                         PropertyName = nameof(PolicyFilterQuery.Sort),
                         ErrorMessage = $"Sort field '{field}' is not allowed. Allowed fields: {string.Join(", ", AllowedSortFields)}",
@@ -67,7 +67,7 @@ public sealed class PolicyFilterQueryValidator : AbstractValidator<PolicyFilterQ
                     var direction = parts[1].Trim();
                     if (!AllowedSortDirections.Contains(direction, StringComparer.OrdinalIgnoreCase))
                     {
-                        context.AddFailure(new()
+                        context.AddFailure(new FluentValidation.Results.ValidationFailure()
                         {
                             PropertyName = nameof(PolicyFilterQuery.Sort),
                             ErrorMessage = "Sort direction must be 'asc' or 'desc'",

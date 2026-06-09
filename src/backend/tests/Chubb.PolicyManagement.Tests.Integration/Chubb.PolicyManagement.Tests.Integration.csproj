@@ -10,9 +10,11 @@
 
     <CollectCoverage>true</CollectCoverage>
     <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>$(MSBuildThisFileDirectory)..\..\..\..\coverage-logs\coverage.integration.cobertura.xml</CoverletOutput>
     <Threshold>90</Threshold>
     <ThresholdType>line,branch,method</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
+    <ExcludeByFile>**/Migrations/*.cs,**/*.Designer.cs,**/Program.cs,**/WeatherForecast.cs,**/WeatherForecastController.cs</ExcludeByFile>
   </PropertyGroup>
 
   <ItemGroup>

@@ -7,7 +7,7 @@ description: >
   tier planning, backend scaffold, frontend scaffold, openapi contract design, policy schema design.
   Reads requirements.md as the source of truth and produces architecture decisions, component breakdowns,
   layer diagrams, and actionable scaffolding plans without writing implementation code.
-tools: [read, search, todo]
+tools: tools: [read, write, edit/editFiles, search, todo, execute]
 argument-hint: "Describe the architecture concern or requirements section to analyse, e.g. 'review Tier 1 backend structure' or 'design the policy schema'"
 ---
 

@@ -6,7 +6,7 @@ description: >
   OWASP security, HTTPS, secure headers, CORS, refresh tokens, role-based access, policy-based authorization,
   secrets management, secure configuration, password hashing, token expiration, claim validation, bearer tokens.
   Handles JWT token design, middleware security, authorization policies, and OWASP compliance.
-tools: ['edit', 'search', 'read', 'execute', 'todo']
+tools: [read, write, edit/editFiles, search, todo, execute]
 argument-hint: "A security task, e.g. 'design JWT authentication middleware', 'implement role-based authorization', 'add OWASP security headers'"
 ---
 

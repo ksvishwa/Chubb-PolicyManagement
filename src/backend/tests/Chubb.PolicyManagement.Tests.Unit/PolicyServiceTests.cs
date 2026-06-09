@@ -148,12 +148,398 @@ public class PolicyServiceTests
         result.Size.Should().Be(100);
     }
 
-    private static Policy CreatePolicy(Guid id, string number, PolicyStatus status) => new()
+    // ── Additional GetPoliciesAsync filter scenarios ─────────────────────
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithLineOfBusinessFilter_ReturnsFilteredResults()
+    {
+        // Arrange
+        var marinePolicies = new List<Policy>
+        {
+            CreatePolicy(Guid.NewGuid(), "POL-001", PolicyStatus.Active, LineOfBusiness.Marine)
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, LineOfBusiness.Marine, null, null, null, null, default))
+            .ReturnsAsync((marinePolicies.AsReadOnly(), 1));
+
+        var query = new PolicyFilterQuery { LineOfBusiness = "Marine" };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Data.Should().HaveCount(1);
+        result.Data[0].LineOfBusiness.Should().Be("Marine");
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithAAndHLineOfBusiness_NormalizesAndMapsToAmpersandH()
+    {
+        // Arrange
+        var aAndHPolicies = new List<Policy>
+        {
+            CreatePolicy(Guid.NewGuid(), "POL-001", PolicyStatus.Active, LineOfBusiness.AAndH)
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, LineOfBusiness.AAndH, null, null, null, null, default))
+            .ReturnsAsync((aAndHPolicies.AsReadOnly(), 1));
+
+        var query = new PolicyFilterQuery { LineOfBusiness = "A&H" };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Data.Should().HaveCount(1);
+        result.Data[0].LineOfBusiness.Should().Be("A&H");
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithRegionFilter_ReturnsFilteredResults()
+    {
+        // Arrange
+        var policies = new List<Policy>
+        {
+            CreatePolicy(Guid.NewGuid(), "POL-001", PolicyStatus.Active)
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, "Singapore", null, null, null, default))
+            .ReturnsAsync((policies.AsReadOnly(), 1));
+
+        var query = new PolicyFilterQuery { Region = "Singapore" };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Data.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithDateRangeFilter_ReturnsFilteredResults()
+    {
+        // Arrange
+        var from = new DateOnly(2024, 1, 1);
+        var to = new DateOnly(2024, 12, 31);
+        var policies = new List<Policy>
+        {
+            CreatePolicy(Guid.NewGuid(), "POL-001", PolicyStatus.Active)
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, from, to, null, default))
+            .ReturnsAsync((policies.AsReadOnly(), 1));
+
+        var query = new PolicyFilterQuery { EffectiveDateFrom = from, EffectiveDateTo = to };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Data.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithSearchFilter_ReturnsFilteredResults()
+    {
+        // Arrange
+        var policies = new List<Policy>
+        {
+            CreatePolicy(Guid.NewGuid(), "POL-001", PolicyStatus.Active)
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, null, null, "POL-001", default))
+            .ReturnsAsync((policies.AsReadOnly(), 1));
+
+        var query = new PolicyFilterQuery { Search = "POL-001" };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Data.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithPage2Size10_CorrectPaginationApplied()
+    {
+        // Arrange
+        var policies = Enumerable.Range(1, 10)
+            .Select(i => CreatePolicy(Guid.NewGuid(), $"POL-{i:000}", PolicyStatus.Active))
+            .ToList();
+
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(2, 10, "createdAt", "desc", null, null, null, null, null, null, default))
+            .ReturnsAsync((policies.AsReadOnly(), 25));
+
+        var query = new PolicyFilterQuery { Page = 2, Size = 10 };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Page.Should().Be(2);
+        result.Size.Should().Be(10);
+        result.TotalCount.Should().Be(25);
+        result.TotalPages.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithUnknownStatus_TreatsAsNoStatusFilter()
+    {
+        // Arrange — non-parseable status → null passed to repository
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, null, null, null, default))
+            .ReturnsAsync((new List<Policy>().AsReadOnly(), 0));
+
+        var query = new PolicyFilterQuery { Status = "Unknown" };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Should().NotBeNull();
+        _repositoryMock.Verify(r =>
+            r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, null, null, null, default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithUnknownLineOfBusiness_TreatsAsNoLobFilter()
+    {
+        // Arrange — non-parseable LOB → null passed to repository
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, null, null, null, default))
+            .ReturnsAsync((new List<Policy>().AsReadOnly(), 0));
+
+        var query = new PolicyFilterQuery { LineOfBusiness = "Unknown" };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Should().NotBeNull();
+        _repositoryMock.Verify(r =>
+            r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, null, null, null, default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithPageBelow1_ClampsToPage1()
+    {
+        // Arrange — validator mock passes; service clamps page to 1
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, null, null, null, default))
+            .ReturnsAsync((new List<Policy>().AsReadOnly(), 0));
+
+        var query = new PolicyFilterQuery { Page = 0 };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Page.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_TotalPagesCalculation_RoundsUp()
+    {
+        // Arrange — 25 total, size 10 → 3 pages
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 10, "createdAt", "desc", null, null, null, null, null, null, default))
+            .ReturnsAsync((new List<Policy>().AsReadOnly(), 25));
+
+        var query = new PolicyFilterQuery { Size = 10 };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.TotalPages.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_TotalPagesCalculation_ExactMultiple()
+    {
+        // Arrange — 20 total, size 10 → 2 pages exactly
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 10, "createdAt", "desc", null, null, null, null, null, null, default))
+            .ReturnsAsync((new List<Policy>().AsReadOnly(), 20));
+
+        var query = new PolicyFilterQuery { Size = 10 };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.TotalPages.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_EmptyResult_ReturnZeroTotalCountAndPages()
+    {
+        // Arrange
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "createdAt", "desc", null, null, null, null, null, null, default))
+            .ReturnsAsync((new List<Policy>().AsReadOnly(), 0));
+
+        var query = new PolicyFilterQuery();
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Data.Should().BeEmpty();
+        result.TotalCount.Should().Be(0);
+        result.TotalPages.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithCustomSort_PassesSortFieldAndDirectionToRepository()
+    {
+        // Arrange
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(1, 20, "premiumAmount", "asc", null, null, null, null, null, null, default))
+            .ReturnsAsync((new List<Policy>().AsReadOnly(), 0));
+
+        var query = new PolicyFilterQuery { Sort = "premiumAmount,asc" };
+
+        // Act
+        var result = await _sut.GetPoliciesAsync(query);
+
+        // Assert
+        result.Should().NotBeNull();
+        _repositoryMock.Verify(r =>
+            r.GetPagedAsync(1, 20, "premiumAmount", "asc", null, null, null, null, null, null, default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetPoliciesAsync_WithCancellationToken_PropagatesCancellation()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        _repositoryMock
+            .Setup(r => r.GetPagedAsync(
+                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<PolicyStatus?>(), It.IsAny<LineOfBusiness?>(), It.IsAny<string?>(),
+                It.IsAny<DateOnly?>(), It.IsAny<DateOnly?>(), It.IsAny<string?>(), cts.Token))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var query = new PolicyFilterQuery();
+
+        // Act
+        var act = async () => await _sut.GetPoliciesAsync(query, cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task GetPolicyByIdAsync_WithCancellationToken_PropagatesCancellation()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var id = Guid.NewGuid();
+        cts.Cancel();
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(id, cts.Token))
+            .ThrowsAsync(new OperationCanceledException());
+
+        // Act
+        var act = async () => await _sut.GetPolicyByIdAsync(id, cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task BulkFlagPoliciesAsync_WithCancellationToken_PropagatesCancellation()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var ids = new[] { Guid.NewGuid() };
+        var request = new BulkFlagRequest { PolicyIds = ids };
+
+        _repositoryMock
+            .Setup(r => r.BulkFlagAsync(It.IsAny<IEnumerable<Guid>>(), cts.Token))
+            .ThrowsAsync(new OperationCanceledException());
+
+        cts.Cancel();
+
+        // Act
+        var act = async () => await _sut.BulkFlagPoliciesAsync(request, cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    // ── GetSummaryAsync additional scenarios ─────────────────────────────
+
+    [Fact]
+    public async Task GetSummaryAsync_WithEmptyDatabase_ReturnsZeroedSummary()
+    {
+        // Arrange
+        var emptySummary = new PolicySummary(0, 0, 0, 0, 0, 0, 0m,
+            new Dictionary<string, int>(),
+            new Dictionary<string, int>());
+
+        _repositoryMock.Setup(r => r.GetSummaryAsync(default)).ReturnsAsync(emptySummary);
+
+        // Act
+        var result = await _sut.GetSummaryAsync();
+
+        // Assert
+        result.TotalPolicies.Should().Be(0);
+        result.ActivePolicies.Should().Be(0);
+        result.ExpiredPolicies.Should().Be(0);
+        result.PendingPolicies.Should().Be(0);
+        result.CancelledPolicies.Should().Be(0);
+        result.FlaggedForReview.Should().Be(0);
+        result.TotalPremiumAmount.Should().Be(0m);
+        result.ByLineOfBusiness.Should().BeEmpty();
+        result.ByRegion.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSummaryAsync_MapsAllFields_Correctly()
+    {
+        // Arrange
+        var byLob = new Dictionary<string, int> { ["Property"] = 30, ["Marine"] = 20 };
+        var byRegion = new Dictionary<string, int> { ["Singapore"] = 50 };
+        var summary = new PolicySummary(100, 60, 20, 10, 10, 5, 999.99m, byLob, byRegion);
+
+        _repositoryMock.Setup(r => r.GetSummaryAsync(default)).ReturnsAsync(summary);
+
+        // Act
+        var result = await _sut.GetSummaryAsync();
+
+        // Assert
+        result.TotalPolicies.Should().Be(100);
+        result.ActivePolicies.Should().Be(60);
+        result.ExpiredPolicies.Should().Be(20);
+        result.PendingPolicies.Should().Be(10);
+        result.CancelledPolicies.Should().Be(10);
+        result.FlaggedForReview.Should().Be(5);
+        result.TotalPremiumAmount.Should().Be(999.99m);
+        result.ByLineOfBusiness.Should().ContainKey("Property");
+        result.ByRegion.Should().ContainKey("Singapore");
+    }
+
+    private static Policy CreatePolicy(Guid id, string number, PolicyStatus status,
+        LineOfBusiness lob = LineOfBusiness.Property) => new()
     {
         Id = id,
         PolicyNumber = number,
         PolicyholderName = "Test Holder",
-        LineOfBusiness = LineOfBusiness.Property,
+        LineOfBusiness = lob,
         Status = status,
         PremiumAmount = 10_000m,
         Currency = "USD",
