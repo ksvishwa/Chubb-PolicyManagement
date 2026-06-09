@@ -1,0 +1,364 @@
+openapi: 3.0.3
+info:
+  title: Chubb APAC Policy Management API
+  description: Backend API for the Chubb APAC Policy Management Platform — manages insurance policies across the Asia-Pacific region.
+  version: "1.0.0"
+  contact:
+    name: Chubb APAC Platform Team
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+  - url: http://api:5000
+    description: Docker Compose service
+
+tags:
+  - name: Policies
+    description: Policy management operations
+
+paths:
+  /api/v1/policies:
+    get:
+      tags: [Policies]
+      summary: Get paginated, filtered, sorted list of policies
+      operationId: getPolicies
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: Page size (max 100)
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: sort
+          in: query
+          description: Sort field and direction (e.g. createdAt,desc)
+          schema:
+            type: string
+            default: "createdAt,desc"
+            example: "premiumAmount,asc"
+        - name: status
+          in: query
+          description: Filter by policy status
+          schema:
+            $ref: '#/components/schemas/PolicyStatus'
+        - name: lineOfBusiness
+          in: query
+          description: Filter by line of business
+          schema:
+            $ref: '#/components/schemas/LineOfBusiness'
+        - name: region
+          in: query
+          description: Filter by APAC region name
+          schema:
+            type: string
+            example: "Singapore"
+        - name: effectiveDateFrom
+          in: query
+          description: Filter policies with effective date on or after this date (ISO 8601)
+          schema:
+            type: string
+            format: date
+            example: "2025-01-01"
+        - name: effectiveDateTo
+          in: query
+          description: Filter policies with effective date on or before this date (ISO 8601)
+          schema:
+            type: string
+            format: date
+            example: "2025-12-31"
+        - name: search
+          in: query
+          description: Free-text search across policyNumber, policyholderName, and underwriter
+          schema:
+            type: string
+            example: "POL-001"
+      responses:
+        '200':
+          description: Paginated list of policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPolicyResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/v1/policies/summary:
+    get:
+      tags: [Policies]
+      summary: Get aggregated policy statistics
+      operationId: getPolicySummary
+      responses:
+        '200':
+          description: Aggregated policy statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicySummary'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/v1/policies/{id}:
+    get:
+      tags: [Policies]
+      summary: Get a single policy by ID
+      operationId: getPolicyById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Policy UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Policy details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '404':
+          description: Policy not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/v1/policies/flag:
+    patch:
+      tags: [Policies]
+      summary: Bulk flag policies for review
+      operationId: bulkFlagPolicies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkFlagRequest'
+      responses:
+        '204':
+          description: Policies flagged successfully
+        '400':
+          description: Invalid request body
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: Unprocessable entity
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Internal server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+components:
+  schemas:
+    Policy:
+      type: object
+      required: [id, policyNumber, policyholderName, lineOfBusiness, status, premiumAmount, currency, effectiveDate, expiryDate, region, underwriter, flaggedForReview, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique policy identifier
+        policyNumber:
+          type: string
+          maxLength: 50
+          example: "POL-2025-SG-001"
+        policyholderName:
+          type: string
+          maxLength: 200
+          example: "Acme Corporation Pte Ltd"
+        lineOfBusiness:
+          $ref: '#/components/schemas/LineOfBusiness'
+        status:
+          $ref: '#/components/schemas/PolicyStatus'
+        premiumAmount:
+          type: number
+          format: decimal
+          example: 125000.00
+        currency:
+          type: string
+          maxLength: 10
+          example: "SGD"
+        effectiveDate:
+          type: string
+          format: date
+          example: "2025-01-01"
+        expiryDate:
+          type: string
+          format: date
+          example: "2026-01-01"
+        region:
+          type: string
+          maxLength: 100
+          example: "Singapore"
+        underwriter:
+          type: string
+          maxLength: 200
+          example: "John Smith"
+        flaggedForReview:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PolicyStatus:
+      type: string
+      enum: [Active, Expired, Pending, Cancelled]
+      description: Status of the insurance policy
+
+    LineOfBusiness:
+      type: string
+      enum: [Property, Casualty, AAndH, Marine]
+      description: Line of business for the policy
+
+    PagedPolicyResponse:
+      type: object
+      required: [data, page, size, totalCount, totalPages]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Policy'
+        page:
+          type: integer
+          description: Current page number (1-based)
+          example: 1
+        size:
+          type: integer
+          description: Page size
+          example: 20
+        totalCount:
+          type: integer
+          description: Total number of matching policies
+          example: 247
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 13
+
+    PolicySummary:
+      type: object
+      required: [totalPolicies, activePolicies, expiredPolicies, pendingPolicies, cancelledPolicies, flaggedForReview, totalPremiumAmount, byLineOfBusiness, byRegion]
+      properties:
+        totalPolicies:
+          type: integer
+          example: 247
+        activePolicies:
+          type: integer
+          example: 148
+        expiredPolicies:
+          type: integer
+          example: 52
+        pendingPolicies:
+          type: integer
+          example: 31
+        cancelledPolicies:
+          type: integer
+          example: 16
+        flaggedForReview:
+          type: integer
+          example: 23
+        totalPremiumAmount:
+          type: number
+          format: decimal
+          example: 30875000.00
+        byLineOfBusiness:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            Property: 85
+            Casualty: 72
+            AAndH: 55
+            Marine: 35
+        byRegion:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            Singapore: 89
+            "Hong Kong": 63
+            Australia: 55
+            Japan: 40
+
+    BulkFlagRequest:
+      type: object
+      required: [policyIds]
+      properties:
+        policyIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: List of policy UUIDs to flag for review
+          example: ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          description: URI reference identifying the problem type
+          example: "https://httpstatuses.com/404"
+        title:
+          type: string
+          description: Short human-readable summary
+          example: "Not Found"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 404
+        detail:
+          type: string
+          description: Human-readable explanation of this occurrence
+          example: "Policy with id '...' was not found."
+        instance:
+          type: string
+          description: URI reference identifying the specific occurrence
+          example: "/api/v1/policies/3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        traceId:
+          type: string
+          description: Correlation/trace identifier
+          example: "00-abc123-def456-00"

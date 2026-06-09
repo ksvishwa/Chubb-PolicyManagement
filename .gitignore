@@ -1,0 +1,12 @@
+.env
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.angular/
+**/*.user
+**/appsettings.*.json
+!**/appsettings.json
+!**/appsettings.Development.json
+
+**/TestResults/
